@@ -1,0 +1,9 @@
+node_modules/
+*.db
+.next/
+dist/
+.turbo/
+.env
+.env.*
+!.env.example
+*.log

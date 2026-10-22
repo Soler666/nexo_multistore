@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                String       @id @default(cuid())
+  name              String
+  taxId             String       @unique // NIT/RUT
+  joinCode          String       @unique @default(cuid())
+  taxRate           Decimal      @default(0.19)
+  currency          String       @default("COP")
+  logoUrl           String?
+  branches          Branch[]
+  users             User[]
+  products          Product[]
+  accessRequests    AccessRequest[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model Branch {
+  id             String       @id @default(cuid())
+  name           String
+  address        String
+  businessType   String       // Ropa, Tecnología, etc.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  inventory      BranchInventory[]
+  sales          Sale[]
+  transfersFrom  StockTransfer[]  @relation("SourceBranch")
+  transfersTo    StockTransfer[]  @relation("TargetBranch")
+  users          User[]           // Usuarios asignados a esta sede
+  accessRequests AccessRequest[]
+  nextInvoiceNumber Int          @default(1)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String?
+  image          String?
+  googleId       String?      @unique
+  role           String       @default("UNASSIGNED")
+  isActive       Boolean      @default(true)
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  branchId       String?
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  
+  sales          Sale[]
+  auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
+  requestedTransfers StockTransfer[] @relation("TransferRequester")
+  decidedTransfers   StockTransfer[] @relation("TransferDecider")
+  accessRequests     AccessRequest[] @relation("AccessRequester")
+  decidedAccessRequests AccessRequest[] @relation("AccessDecisionMaker")
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Product {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  sku            String
+  name           String
+  description    String?
+  basePrice      Decimal
+  category       String
+  isActive       Boolean @default(true)
+  
+  inventory      BranchInventory[]
+  saleItems      SaleItem[]
+  transferItems  TransferItem[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, sku])
+  @@index([organizationId, category])
+}
+
+model BranchInventory {
+  id              String  @id @default(cuid())
+  productId       String
+  branchId        String
+  product         Product @relation(fields: [productId], references: [id])
+  branch          Branch  @relation(fields: [branchId], references: [id])
+  
+  stockAvailable  Int     @default(0)
+  minStockAlert   Int     @default(5)
+  localPrice      Decimal? // Precio específico por sede si aplica
+  
+  @@unique([productId, branchId])
+  @@index([branchId, stockAvailable])
+}
+
+model Sale {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        // Consecutivo por sede
+  totalAmount     Decimal
+  taxAmount       Decimal
+  taxRate         Decimal
+  paymentMethod   String
+  status          String        @default("COMPLETED")
+  receiptToken    String        @unique
+  
+  branchId        String
+  branch          Branch        @relation(fields: [branchId], references: [id])
+  
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  
+  items           SaleItem[]
+  
+  createdAt       DateTime      @default(now())
+
+  @@unique([branchId, invoiceNumber])
+  @@index([branchId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  
+  quantity  Int
+  unitPrice Decimal
+  subtotal  Decimal
+}
+
+model StockTransfer {
+  id             String         @id @default(cuid())
+  status         String         @default("PENDING")
+  
+  sourceBranchId String
+  sourceBranch   Branch         @relation("SourceBranch", fields: [sourceBranchId], references: [id])
+  
+  targetBranchId String
+  targetBranch   Branch         @relation("TargetBranch", fields: [targetBranchId], references: [id])
+
+  requestedById  String
+  requestedBy    User           @relation("TransferRequester", fields: [requestedById], references: [id])
+  decidedById    String?
+  decidedBy      User?          @relation("TransferDecider", fields: [decidedById], references: [id])
+  completedAt    DateTime?
+  
+  items          TransferItem[]
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([sourceBranchId, status, createdAt])
+  @@index([targetBranchId, status, createdAt])
+}
+
+model TransferItem {
+  id              String        @id @default(cuid())
+  transferId      String
+  transfer        StockTransfer @relation(fields: [transferId], references: [id])
+  
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  
+  quantity        Int
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // e.g., "STOCK_ADJUSTMENT", "SALE_CANCELLED"
+  entity    String   // e.g., "Product", "Sale"
+  entityId  String
+  details   String?
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model AccessRequest {
+  id             String       @id @default(cuid())
+  userId         String
+  requester      User         @relation("AccessRequester", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+  requestedRole  String
+  status         String       @default("PENDING")
+  decidedById    String?
+  decidedBy      User?        @relation("AccessDecisionMaker", fields: [decidedById], references: [id])
+  decidedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId, status, createdAt])
+  @@unique([userId, organizationId])
+}
