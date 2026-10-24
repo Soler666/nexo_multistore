@@ -1,4 +1,4 @@
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
+const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://nexo-multistore.onrender.com'
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBase}/api${path}`, {

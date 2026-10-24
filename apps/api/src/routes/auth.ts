@@ -13,7 +13,7 @@ import {
 
 export const authRouter = Router()
 const secure = process.env.NODE_ENV === 'production'
-const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+const webOrigin = process.env.WEB_ORIGIN ?? 'https://nexo-multistore.vercel.app'
 
 function setSessionCookies(res: Response, accessToken: string, refreshToken: string) {
   const options = { httpOnly: true, secure, sameSite: 'lax' as const }

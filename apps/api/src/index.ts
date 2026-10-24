@@ -20,7 +20,7 @@ import { usersRouter } from './routes/users'
 import { attachRealtime } from './services/realtime'
 
 const app = express()
-const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+const webOrigin = process.env.WEB_ORIGIN ?? 'https://nexo-multistore.vercel.app'
 
 app.disable('x-powered-by')
 app.use(helmet())
@@ -53,7 +53,7 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 const port = Number(process.env.PORT ?? 4000)
 const server = createServer(app)
 attachRealtime(server)
-server.listen(port, () => console.log(`API listening on http://localhost:${port}`))
+server.listen(port, () => console.log(`API listening on port ${port}`))
 
 async function shutdown() {
   server.close()

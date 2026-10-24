@@ -29,7 +29,8 @@ receiptsRouter.get('/:saleId.pdf', requireAuth, async (req, res, next) => {
     })
     if (!sale) return res.status(404).json({ error: 'Sale not found' })
 
-    const verifyUrl = `${process.env.API_PUBLIC_URL ?? 'http://localhost:4000'}/api/receipts/verify/${sale.receiptToken}`
+    const apiPublicUrl = (process.env.API_PUBLIC_URL ?? 'https://nexo-multistore.onrender.com').replace(/\/+$/, '')
+    const verifyUrl = `${apiPublicUrl}/api/receipts/verify/${sale.receiptToken}`
     const qrData = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 112 })
     const document = new PDFDocument({ size: 'A4', margin: 42 })
     res.type('application/pdf').attachment(`comprobante-${sale.invoiceNumber}.pdf`)

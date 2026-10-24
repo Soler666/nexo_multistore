@@ -11,7 +11,7 @@ if (!accessSecret) throw new Error('ACCESS_TOKEN_SECRET is required')
 
 export function attachRealtime(server: HttpServer) {
   io = new Server(server, {
-    cors: { origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000', credentials: true },
+    cors: { origin: process.env.WEB_ORIGIN ?? 'https://nexo-multistore.vercel.app', credentials: true },
   })
 
   io.use(async (socket, next) => {

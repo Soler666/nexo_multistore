@@ -13,17 +13,19 @@ export const googleOAuthEnabled = Boolean(
 )
 
 function getGoogleCallbackUrl() {
-  if (process.env.GOOGLE_CALLBACK_URL) return process.env.GOOGLE_CALLBACK_URL
+  const apiPublicUrl = (process.env.API_PUBLIC_URL ?? 'https://nexo-multistore.onrender.com').replace(/\/+$/, '')
+  const callbackUrl = process.env.GOOGLE_CALLBACK_URL
+    ?? `${apiPublicUrl}/api/auth/google/callback`
 
-  if (process.env.NODE_ENV === 'production') {
-    const apiPublicUrl = process.env.API_PUBLIC_URL?.replace(/\/+$/, '')
-    if (!apiPublicUrl) {
-      throw new Error('GOOGLE_CALLBACK_URL or API_PUBLIC_URL is required when Google OAuth is enabled in production')
-    }
-    return `${apiPublicUrl}/api/auth/google/callback`
+  const callbackHost = new URL(callbackUrl).hostname
+  const apiHost = new URL(apiPublicUrl).hostname
+  const callbackIsLocal = callbackHost === 'localhost' || callbackHost === '127.0.0.1'
+  const apiIsLocal = apiHost === 'localhost' || apiHost === '127.0.0.1'
+  if (callbackIsLocal && (process.env.NODE_ENV === 'production' || !apiIsLocal)) {
+    throw new Error('GOOGLE_CALLBACK_URL must use the public production URL when running in production')
   }
 
-  return 'http://localhost:4000/api/auth/google/callback'
+  return callbackUrl
 }
 
 if (googleOAuthEnabled) {
