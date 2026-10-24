@@ -39,7 +39,11 @@ receiptsRouter.get('/:saleId.pdf', requireAuth, async (req, res, next) => {
     document.moveDown(0.25).fontSize(11).text(sale.branch.name)
     document.text(sale.branch.address)
     document.moveDown().fontSize(14).text(`Comprobante ${sale.invoiceNumber}`)
-    document.fontSize(10).text(`Fecha: ${sale.createdAt.toLocaleString('es-CO')}`)
+    document.fontSize(10).text(`Fecha: ${new Intl.DateTimeFormat('es-CO', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+      timeZone: 'America/Bogota',
+    }).format(sale.createdAt)}`)
     document.text(`Atendido por: ${sale.user.name ?? 'Cajero'}`)
     document.moveDown().font('Helvetica-Bold').text('Producto', 42, document.y, { continued: true, width: 265 })
     document.text('Cant.', 310, document.y, { continued: true, width: 55, align: 'right' })
