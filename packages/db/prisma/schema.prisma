@@ -5,10 +5,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+//(Producción / Nube)
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 
 model Organization {
   id                String       @id @default(cuid())
