@@ -47,10 +47,11 @@ onboardingRouter.post('/', requireAuth, async (req, res, next) => {
       return created
     })
     const updatedUser = await prisma.user.findUniqueOrThrow({ where: { id: req.auth!.userId } })
+    const secure = process.env.NODE_ENV === 'production'
     res.cookie('accessToken', createAccessToken(updatedUser), {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure,
+      sameSite: secure ? 'none' : 'lax',
       path: '/',
       maxAge: 15 * 60 * 1000,
     })

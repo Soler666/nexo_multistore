@@ -13,10 +13,11 @@ import {
 
 export const authRouter = Router()
 const secure = process.env.NODE_ENV === 'production'
+const sessionSameSite = secure ? 'none' as const : 'lax' as const
 const webOrigin = process.env.WEB_ORIGIN ?? 'https://nexo-multistore.vercel.app'
 
 function setSessionCookies(res: Response, accessToken: string, refreshToken: string) {
-  const options = { httpOnly: true, secure, sameSite: 'lax' as const }
+  const options = { httpOnly: true, secure, sameSite: sessionSameSite }
   res.cookie('accessToken', accessToken, { ...options, path: '/', maxAge: 15 * 60 * 1000 })
   res.cookie('refreshToken', refreshToken, {
     ...options,
@@ -130,8 +131,8 @@ authRouter.post('/logout', async (req, res, next) => {
         data: { revokedAt: new Date() },
       })
     }
-    res.clearCookie('accessToken', { secure, sameSite: 'lax', path: '/' })
-    res.clearCookie('refreshToken', { secure, sameSite: 'lax', path: '/api/auth' })
+    res.clearCookie('accessToken', { secure, sameSite: sessionSameSite, path: '/' })
+    res.clearCookie('refreshToken', { secure, sameSite: sessionSameSite, path: '/api/auth' })
     res.status(204).end()
   } catch (error) {
     next(error)

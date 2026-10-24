@@ -24,12 +24,12 @@ export default function AccessPage() {
   const session = useQuery({
     queryKey: ['session'],
     queryFn: () => api<User>('/auth/me'),
-    refetchInterval: 5000,
+    refetchInterval: (query) => query.state.data ? 5000 : false,
   })
   const requests = useQuery({
     queryKey: ['access-requests-me'],
     queryFn: () => api<AccessState>('/access/me'),
-    refetchInterval: 5000,
+    refetchInterval: session.data ? 5000 : false,
   })
   const lookup = useMutation({
     mutationFn: (code: string) => api<Organization>(`/access/organizations/${encodeURIComponent(code)}`),
