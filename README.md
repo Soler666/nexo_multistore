@@ -208,7 +208,13 @@ Configura el cliente OAuth de tipo **Aplicación web**:
 - Orígenes autorizados de JavaScript: `http://localhost:3000`.
 - URI de redireccionamiento autorizada: `http://localhost:4000/api/auth/google/callback`.
 
-En producción, sustituye ambos por los dominios HTTPS reales y actualiza `WEB_ORIGIN`, `GOOGLE_CALLBACK_URL` y `API_PUBLIC_URL`.
+En producción, configura las variables de entorno del backend (por ejemplo, en Render):
+
+- `WEB_ORIGIN="https://nexo-multistore.vercel.app"`.
+- `API_PUBLIC_URL="https://nexo-multistore.onrender.com"`.
+- `GOOGLE_CALLBACK_URL="https://nexo-multistore.onrender.com/api/auth/google/callback"`.
+
+En Google Cloud Console registra como origen JavaScript autorizado `https://nexo-multistore.vercel.app` y como URI de redireccionamiento autorizado `https://nexo-multistore.onrender.com/api/auth/google/callback`. Si `GOOGLE_CALLBACK_URL` no está configurada en producción, el backend la deriva de `API_PUBLIC_URL`; si tampoco existe esta última, el backend indica el error de configuración en vez de enviar a `localhost`.
 
 ## Comandos
 

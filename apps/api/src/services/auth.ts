@@ -12,13 +12,27 @@ export const googleOAuthEnabled = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
 )
 
+function getGoogleCallbackUrl() {
+  if (process.env.GOOGLE_CALLBACK_URL) return process.env.GOOGLE_CALLBACK_URL
+
+  if (process.env.NODE_ENV === 'production') {
+    const apiPublicUrl = process.env.API_PUBLIC_URL?.replace(/\/+$/, '')
+    if (!apiPublicUrl) {
+      throw new Error('GOOGLE_CALLBACK_URL or API_PUBLIC_URL is required when Google OAuth is enabled in production')
+    }
+    return `${apiPublicUrl}/api/auth/google/callback`
+  }
+
+  return 'http://localhost:4000/api/auth/google/callback'
+}
+
 if (googleOAuthEnabled) {
   passport.use(
     new GoogleStrategy(
       {
         clientID: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:4000/api/auth/google/callback',
+        callbackURL: getGoogleCallbackUrl(),
       },
       async (_accessToken, _refreshToken, profile: Profile, done) => {
         try {
