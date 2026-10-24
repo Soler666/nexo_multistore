@@ -106,3 +106,87 @@ platformRouter.post('/organizations', async (req, res, next) => {
     next(error)
   }
 })
+
+platformRouter.delete('/organizations/:id', async (req, res, next) => {
+  if (!requirePlatformAdmin(req, res)) return
+  try {
+    await prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, name: true },
+      })
+      if (!organization) throw Object.assign(new Error('Organization not found'), { status: 404 })
+
+      const [branches, products, users] = await Promise.all([
+        tx.branch.findMany({ where: { organizationId: organization.id }, select: { id: true } }),
+        tx.product.findMany({ where: { organizationId: organization.id }, select: { id: true } }),
+        tx.user.findMany({ where: { organizationId: organization.id }, select: { id: true } }),
+      ])
+      const branchIds = branches.map(({ id }) => id)
+      const productIds = products.map(({ id }) => id)
+      const userIds = users.map(({ id }) => id)
+
+      const [sales, transfers] = await Promise.all([
+        tx.sale.findMany({
+          where: {
+            OR: [
+              { branchId: { in: branchIds } },
+              { userId: { in: userIds } },
+              { items: { some: { productId: { in: productIds } } } },
+            ],
+          },
+          select: { id: true },
+        }),
+        tx.stockTransfer.findMany({
+          where: {
+            OR: [
+              { sourceBranchId: { in: branchIds } },
+              { targetBranchId: { in: branchIds } },
+              { requestedById: { in: userIds } },
+              { decidedById: { in: userIds } },
+              { items: { some: { productId: { in: productIds } } } },
+            ],
+          },
+          select: { id: true },
+        }),
+      ])
+      const saleIds = sales.map(({ id }) => id)
+      const transferIds = transfers.map(({ id }) => id)
+
+      await tx.accessRequest.deleteMany({
+        where: {
+          OR: [
+            { organizationId: organization.id },
+            { branchId: { in: branchIds } },
+            { userId: { in: userIds } },
+            { decidedById: { in: userIds } },
+          ],
+        },
+      })
+      await tx.saleItem.deleteMany({ where: { saleId: { in: saleIds } } })
+      await tx.sale.deleteMany({ where: { id: { in: saleIds } } })
+      await tx.transferItem.deleteMany({ where: { transferId: { in: transferIds } } })
+      await tx.stockTransfer.deleteMany({ where: { id: { in: transferIds } } })
+      await tx.branchInventory.deleteMany({
+        where: { OR: [{ branchId: { in: branchIds } }, { productId: { in: productIds } }] },
+      })
+      await tx.auditLog.deleteMany({ where: { userId: { in: userIds } } })
+      await tx.user.deleteMany({ where: { id: { in: userIds } } })
+      await tx.branch.deleteMany({ where: { id: { in: branchIds } } })
+      await tx.product.deleteMany({ where: { id: { in: productIds } } })
+      await tx.organization.delete({ where: { id: organization.id } })
+      await tx.auditLog.create({
+        data: {
+          userId: req.auth!.userId,
+          action: 'ORGANIZATION_DELETED_BY_PLATFORM',
+          entity: 'Organization',
+          entityId: organization.id,
+          details: JSON.stringify({ name: organization.name }),
+        },
+      })
+    })
+    res.status(204).end()
+  } catch (error) {
+    next(error)
+  }
+})

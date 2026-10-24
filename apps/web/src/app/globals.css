@@ -328,6 +328,7 @@ h1, h2, p { margin-top: 0; }
 .branch-card-bottom { display: flex; align-items: center; gap: 7px; padding-top: 11px; border-top: 1px solid #eff0eb; color: #8e938a; font-size: 8px; }
 .branch-card-bottom strong { color: var(--olive); font-size: 10px; }
 .branch-card-bottom i { width: 1px; height: 12px; margin: 0 2px; background: var(--line); }
+.branch-card > .reject-action { margin-top: 10px; }
 .branch-create-panel { padding: 19px; }
 .branch-create-icon { display: grid; width: 36px; height: 36px; place-items: center; margin-bottom: 14px; color: var(--coral); border-radius: 4px; background: var(--coral-light); }
 .branch-create-panel h2 { font-size: 21px; }
